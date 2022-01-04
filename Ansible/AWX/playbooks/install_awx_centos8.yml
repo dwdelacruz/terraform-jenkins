@@ -1,0 +1,130 @@
+---
+- name:  Installing AWX on CentOS
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+  tasks:
+    - name: Install Epel-Release
+      yum:
+        name: epel-release
+        state: present
+
+    - name: Install a list of packages with a list variable
+      yum:
+        name:
+          - git
+          - ansible
+          - gcc
+          - gcc-c++
+          - nodejs
+          - gettext
+          - device-mapper-persistent-data
+          - lvm2
+          - bzip2
+          - python3
+          - yum-utils
+          - firewalld
+        state: present
+### Enable firewalld confirguration
+    - name: Remove Podman to allow docker to run
+      yum:
+        name: podman
+        state: absent
+
+    - name: Remove buildah to allow docker to run
+      yum:
+        name: buildah
+        state: absent
+
+    - name: Add Docker CE repo
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+
+    - name: Install DockerCE
+      yum:
+        name: docker-ce
+        state: present
+
+    - name: systemctl enable docker.service
+      systemd:
+        name: docker.service
+        enabled: yes
+        state: started
+
+    - name: Install docker-ce
+      pip:
+        name: docker-compose
+
+    - name: Create new directory for project
+      file:
+        path: /root/AnsibleTower
+        state: directory
+        group: wheel
+        mode: 0775
+
+    - name: Extracting 17.01 AnsibleTower Version
+      get_url:
+        url: https://github.com/ansible/awx/archive/refs/tags/17.1.0.tar.gz
+        dest: /root/AnsibleTower
+        force_basic_auth: yes
+
+    - name: UnTar Ansible File
+      unarchive:
+        src: /root/AnsibleTower/awx-17.1.0.tar.gz
+        dest: /root/AnsibleTower/
+
+    - name: Editing the Postgress user Password
+      lineinfile:
+        path: /root/AnsibleTower/awx-17.1.0/installer/inventory
+        regexp: 'pg_password=awxpass'
+        line: 'pg_password=o5SNa6uTuH8h2wNsTNk3/DjmtFv1QjOYkQK+z3Ao'
+        state: present
+
+    - name: Editing the Admin user Password
+      lineinfile:
+        path: /root/AnsibleTower/awx-17.1.0/installer/inventory
+        regexp: '# admin_password=password'
+        line: 'admin_password=Deloitte_2021#'
+        state: present
+
+    - name: Editing the Secret Key
+      lineinfile:
+        path: /root/AnsibleTower/awx-17.1.0/installer/inventory
+        regexp: 'secret_key=awxsecret'
+        line: 'secret_key=MC8CAQACBQu08hfBAgMBAAECBQbf3gYVAgMDuJcCAwMlZwIDAT+zAgMDIG8CAwNP'
+        state: present
+
+#    - name: Editing Inventory file with password requirments
+#      blockinfile:
+#        dest: /root/AnsibleTower/awx-17.1.0/installer/inventory
+#        marker:
+#        block: |
+#         'admin_password=.* | admin_password=Ahmer@1234|g'
+#         'secret_key= .* | secret_key=TzGSp1CKqTP/C7B1g18ck9bSp0Ms+0G5IRCQSD2E'
+
+#    - name: Creating openssl module openssl key on AWX directory
+#      openssl_privatekey:
+#        path: /root/AnsibleTower/awx/opensslkey.txt
+#        cypher: base64
+#      ignore_
+
+#    - name: Manually creating openssl module opensslkey on AWX directory
+#      command: openssl rand -base64 -out /root/AnsibleTower/awx-17.1.0/installer/inventory/test.key 30
+
+### Import the created Openssl Key to the Ansible Inventory file to run the tower
+
+    - name: Set the firewall configuration services to permanent
+      firewalld:
+        service: http
+        permanent: true
+        state: enabled
+
+    - name: Firewall the reload
+      firewalld:
+        service: http
+        permanent: true
+        state: enabled
+
+    - name: Running Ansible-playbook
+      command: ansible-playbook -i /root/AnsibleTower/awx-17.1.0/installer/inventory /root/AnsibleTower/awx-17.1.0/installer/install.yml

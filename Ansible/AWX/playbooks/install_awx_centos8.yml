@@ -41,10 +41,18 @@
         url: https://download.docker.com/linux/centos/docker-ce.repo
         dest: /etc/yum.repos.d/docker-ce.repo
 
-    - name: Install DockerCE
-      yum:
-        name: docker-ce
-        state: present
+    #- name: Installing Docker-Compose
+    ##  get_url: 
+    #    url: https://github.com/docker/compose/releases/download/1.23.2/docker-compose-$(uname -s)-$(uname -m)
+    #    dest: /usr/local/bin/docker-compose
+    
+    # - name: Chmod Docker-compose
+    #  command: "sudo chmod +x /usr/local/bin/docker-compose"
+    #  register: docker-compose
+
+# sudo curl -L "https://github.com/docker/compose/releases/download/1.23.2/docker-compose-$(uname -s)-$(uname -m)" -o /root/bin/docker-compose
+# sudo chmod +x /bin/docker-compose
+# docker-compose --version
 
     - name: systemctl enable docker.service
       systemd:
@@ -52,9 +60,9 @@
         enabled: yes
         state: started
 
-    - name: Install docker-ce
-      pip:
-        name: docker-compose
+   # - name: Install docker-ce
+   #   pip:
+   #     name: docker-compose
 
     - name: Create new directory for project
       file:

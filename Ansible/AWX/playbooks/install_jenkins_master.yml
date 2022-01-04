@@ -1,0 +1,73 @@
+---
+- name: Installing Jenkins
+  hosts: localhost
+  become:  true
+  become_method: sudo
+  tasks:
+    - name: sudo yum update
+      yum:
+        name: "*"
+        state: latest
+
+    - name: sudo yum remove java-1.7.0-openjdk
+      yum:
+        name: java-1.7.0-openjdk
+        state: absent
+
+    - name:  sudo yum install java-1.8.0
+      yum:
+        name: java-1.8.0
+        state: latest
+
+    - name: sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+      get_url:
+        url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
+        dest: /etc/yum.repos.d/jenkins.repo
+
+    - name: RPM Import Jekins Keys
+      rpm_key:
+        key: https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+        state: present
+
+ #   - name: sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+ #     command: "sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key"
+
+    - name: sudo yum update
+      yum:
+        name: "*"
+        state: latest
+
+    - name: sudo yum install jenkins -y
+      yum:
+        name: jenkins
+        state: latest
+
+    - name: sudo systemctl daemon-reload
+      command: systemctl daemon-reload
+      become_method: sudo
+
+   # - name: sudo systemctl daemon-reload
+   #   systemd:
+   ##     state: reloaded
+   #     daemon_reload: yes
+
+    - name: sudo systemctl start jenkins
+      service:
+        name: jenkins
+        state: started
+
+    - name: iptables -I INPUT 1 -i eth0 -p tcp --dport 8080 -j ACCEPT
+      iptables:
+        chain:  INPUT
+        in_interface: eth0
+        protocol: tcp
+        destination_port: 8080
+        jump: ACCEPT
+
+    - name: Jenkins Login Passwd
+      command: sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+      become_method: sudo
+      register: cat_passwd
+
+    - debug:
+        var: cat_passwd
